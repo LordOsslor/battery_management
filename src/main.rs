@@ -232,6 +232,9 @@ fn main() {
         if let Some((start, end)) = trim_if_some(cmd.split_once("..")){
             set_thresholds(&args, Some(start), Some(end))
         }
+        else if let Some((start,end)) = trim_if_some(cmd.split_once("to")){
+            set_thresholds(&args, Some(start), Some(end))
+        }
         else if let Some((mode, value)) = trim_if_some(cmd
             .split_once('='))
             {
@@ -248,7 +251,7 @@ fn set_thresholds(args: &CliArgs,start_o: Option<&str>,end_o: Option<&str>){
     if start_o.is_none() && end_o.is_none() {
         return log::error!("Neither start nor end threshold provided")
     }
-    
+
     let mut atleast_one_parsable = false;
     if let Some(start_s) = start_o{
         if let Ok(start) = start_s.parse::<u8>(){
