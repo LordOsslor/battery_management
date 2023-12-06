@@ -228,7 +228,8 @@ fn main() {
             Ok(cmd) => cmd,
             Err(err) => {log::error!("Error while reading IPC command from pipe: {err}"); continue;}
         };
-        let cmd_trimmed = cmd.trim();
+        let cmd_without_percent = cmd.replace("%", "");
+        let cmd_trimmed = cmd_without_percent.trim();
 
         if let Some((start, end)) = trim_if_some(cmd_trimmed.split_once("..")){
             set_thresholds(&args, Some(start), Some(end))
