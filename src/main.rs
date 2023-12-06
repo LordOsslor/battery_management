@@ -228,14 +228,15 @@ fn main() {
             Ok(cmd) => cmd,
             Err(err) => {log::error!("Error while reading IPC command from pipe: {err}"); continue;}
         };
+        let cmd_trimmed = cmd.trim();
 
-        if let Some((start, end)) = trim_if_some(cmd.split_once("..")){
+        if let Some((start, end)) = trim_if_some(cmd_trimmed.split_once("..")){
             set_thresholds(&args, Some(start), Some(end))
         }
-        else if let Some((start,end)) = trim_if_some(cmd.split_once("to")){
+        else if let Some((start,end)) = trim_if_some(cmd_trimmed.split_once("to")){
             set_thresholds(&args, Some(start), Some(end))
         }
-        else if let Some((mode, value)) = trim_if_some(cmd
+        else if let Some((mode, value)) = trim_if_some(cmd_trimmed
             .split_once('='))
             {
             match mode {
@@ -243,7 +244,15 @@ fn main() {
                 "end" => set_thresholds(&args, None,Some(value)),
                 _ => log::error!("Wrong mode provided"),
             }            
-        }    
+        }
+        else if let Ok(value) = cmd_trimmed.parse::<u8>(){
+            if value < 50 {
+                set_thresholds(&args, Some(cmd_trimmed), None)
+            }
+            else if value <= 100 {
+                set_thresholds(&args, None, Some(cmd_trimmed))
+            }
+        }
     }
 }
 
