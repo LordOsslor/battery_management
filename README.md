@@ -1,6 +1,6 @@
 # Linux charge control daemon
 
-A simple daemon to change charge control thresholds for Linux laptops to preserve battery life.
+A simple daemon to change charge control thresholds for Linux laptops to preserve battery health.
 
 ## Usage:
 1. Run the daemon as root (for example via systemd service)
