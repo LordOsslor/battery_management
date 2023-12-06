@@ -60,6 +60,13 @@ fn writable(path:&Path)->bool{
     matches! (unsafe{access(path_c.as_ptr(), libc::W_OK)},0i32)
 }
 
+fn trim_if_some<'a>(v:Option<(&'a str,&'a str)>)->Option<(&'a str,&'a str)>{
+    if let Some((v1,v2))=v{
+        return Some((v1.trim(),v2.trim()))
+    }
+    None
+}
+
 #[derive(Parser, Debug)]
 struct CliArgs {
     #[arg(short,long,default_value=DEFAULT_START_PATH)]
@@ -222,29 +229,47 @@ fn main() {
             Err(err) => {log::error!("Error while reading IPC command from pipe: {err}"); continue;}
         };
 
-        let (mode, value) = if let Some((raw_mode,raw_value))= cmd
-            .split_once('='){ 
-            (raw_mode.trim(),raw_value.trim()) 
-        } else {
-            log::info!("Wrong command syntax: No '=' found!");
-            continue;
-        };
+        if let Some((start, end)) = trim_if_some(cmd.split_once("..")){
+            set_thresholds(&args, Some(start), Some(end))
+        }
+        else if let Some((mode, value)) = trim_if_some(cmd
+            .split_once('='))
+            {
+            match mode {
+                "start" => set_thresholds(&args, Some(value), None),
+                "end" => set_thresholds(&args, None,Some(value)),
+                _ => log::error!("Wrong mode provided"),
+            }            
+        }    
+    }
+}
+
+fn set_thresholds(args: &CliArgs,start_o: Option<&str>,end_o: Option<&str>){
+    if start_o.is_none() && end_o.is_none() {
+        return log::error!("Neither start nor end threshold provided")
+    }
     
-    
-        let path = match mode {
-            "start" => args.start_path.clone(),
-            "end" => args.end_path.clone(),
-            _ => {log::error!("Wrong mode provided"); continue;},
-        };
-    
-        let int_value: u8 = match value.trim().parse::<u8>(){
-            Ok(ok_value)=>ok_value,
-            Err(err)=>{log::error!("Could not parse provided value as uint8: {err}"); continue;}
-        };
-        if let Err(err) = write(path, int_value.to_string()){
-            log::error!("Error while setting charge control {mode} threshold: {err}");
-        }else{
-            log::info!("Successfully set charge control {mode} threshold to {value}%");
-        };
+    let mut atleast_one_parsable = false;
+    if let Some(start_s) = start_o{
+        if let Ok(start) = start_s.parse::<u8>(){
+            match write(args.start_path.clone(), start.to_string()){
+                Ok(()) => log::info!("Successfully set charge control start threshold to {start}%"),
+                Err(e)=>log::error!("Error while setting charge control start threshold: {e}"),
+            }
+            atleast_one_parsable = true;
+        }
+    }
+    if let Some(end_s) = end_o{
+        if let Ok(end) = end_s.parse::<u8>(){
+            match write(args.end_path.clone(), end.to_string()){
+                Ok(()) => log::info!("Successfully set charge control end threshold to {end}%"),
+                Err(e)=>log::error!("Error while setting charge control end threshold: {e}"),
+            }
+            atleast_one_parsable = true;
+        }
+    }
+
+    if !atleast_one_parsable{
+        return log::error!("Neither start nor end threshold parsable")
     }
 }
