@@ -1,5 +1,5 @@
 [package]
-name = "battery_management"
+name = "charge_control_daemon"
 version = "0.1.0"
 edition = "2021"
 
